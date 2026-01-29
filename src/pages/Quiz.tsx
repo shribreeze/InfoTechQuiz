@@ -223,12 +223,20 @@ const Quiz = () => {
                     <p className="text-xl font-display font-bold text-success mb-4">
                       Your score is {score}!
                     </p>
-                    <Button 
-                      onClick={handleProceed}
-                      className="bg-success hover:bg-success/90"
-                    >
-                      Back to Topics
-                    </Button>
+                    <div className="flex gap-3 justify-center">
+                      <Button 
+                        onClick={handleProceed}
+                        className="bg-success hover:bg-success/90"
+                      >
+                        Back to Topics
+                      </Button>
+                      <Button 
+                        onClick={() => navigate(`/results/${topicId}`, { state: { score, topicName } })}
+                        variant="outline"
+                      >
+                        View Results
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               )}

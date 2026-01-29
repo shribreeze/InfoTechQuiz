@@ -26,7 +26,7 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/topics" element={<PrivateRoute><Topics /></PrivateRoute>} />
             <Route path="/quiz/:topicId" element={<PrivateRoute><Quiz /></PrivateRoute>} />
-            <Route path="/results" element={<PrivateRoute><Results /></PrivateRoute>} />
+            <Route path="/results/:topicId" element={<PrivateRoute><Results /></PrivateRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

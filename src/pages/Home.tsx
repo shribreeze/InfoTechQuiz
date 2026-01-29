@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, BookOpen, Users, Trophy } from "lucide-react";
+import { ArrowRight, BookOpen, Users, Trophy, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import Navbar from "@/components/Navbar";
@@ -44,8 +44,8 @@ const Home = () => {
                     <span className="text-sm font-medium text-center">Multiple Topics</span>
                   </div>
                   <div className="flex flex-col items-center p-4 rounded-lg bg-secondary/50">
-                    <Users className="h-8 w-8 text-primary mb-2" />
-                    <span className="text-sm font-medium text-center">Expert Team</span>
+                    <Clock className="h-8 w-8 text-primary mb-2" />
+                    <span className="text-sm font-medium text-center">Quiz Timer</span>
                   </div>
                   <div className="flex flex-col items-center p-4 rounded-lg bg-secondary/50">
                     <Trophy className="h-8 w-8 text-primary mb-2" />

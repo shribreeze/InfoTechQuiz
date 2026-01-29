@@ -13,7 +13,7 @@ interface Topic {
   name: string;
   description: string;
   questionCount: number;
-  icon: string;
+  // icon: string;
 }
 
 const Topics = () => {
@@ -79,7 +79,7 @@ const Topics = () => {
                 onClick={() => handleTopicSelect(topic.id)}
               >
                 <CardContent className="p-6 text-center">
-                  <div className="text-4xl mb-4">{topic.icon}</div>
+                  {/* <div className="text-4xl mb-4">{topic.icon}</div> */}
                   <h3 className="text-xl font-display font-bold text-primary mb-2">
                     {topic.name}
                   </h3>

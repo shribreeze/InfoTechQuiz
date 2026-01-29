@@ -1,172 +1,296 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useParams, useLocation, useNavigate } from "react-router-dom";
+import { collection, doc, getDoc, getDocs, addDoc, query, orderBy, limit } from "firebase/firestore";
+import { db } from "../../firebase.js";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import Navbar from "@/components/Navbar";
-import TopStudents, { StudentScore } from "@/components/TopStudents";
-import { getLeaderboard, saveScore } from "@/lib/leaderboard";
-import { CheckCircle, Home } from "lucide-react";
+import { CheckCircle, Trophy, Medal, Award } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+
+interface LeaderboardEntry {
+  userName: string;
+  score: number;
+  timestamp: any;
+}
 
 const Results = () => {
-  const [performance, setPerformance] = useState("");
+  const { topicId } = useParams<{ topicId: string }>();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { currentUser } = useAuth();
+  const { toast } = useToast();
+  
   const [name, setName] = useState("");
-  const [employeeId, setEmployeeId] = useState("");
-  const [suggestion, setSuggestion] = useState("");
+  const [feedback, setFeedback] = useState("");
   const [submitted, setSubmitted] = useState(false);
-  const [identification, setIdentification] = useState<string>("Anonymous");
-  const [leaderboard, setLeaderboard] = useState<StudentScore[]>([]);
-  const [quizScore, setQuizScore] = useState(0);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [userRank, setUserRank] = useState<number | null>(null);
+  const [topicName, setTopicName] = useState("");
+  const [loading, setLoading] = useState(true);
+  
+  const score = location.state?.score || 0;
+  const topicNameFromState = location.state?.topicName || "";
 
   useEffect(() => {
-    const savedPerformance = localStorage.getItem("performanceDetails") || "Not Available";
-    const savedScore = parseInt(localStorage.getItem("quizScore") || "0", 10);
-    setPerformance(savedPerformance);
-    setQuizScore(savedScore);
-    setLeaderboard(getLeaderboard());
-  }, []);
+    const fetchData = async () => {
+      if (!topicId) return;
+      
+      try {
+        // Fetch topic name if not provided
+        if (!topicNameFromState) {
+          const topicDoc = await getDoc(doc(db, "topics", topicId));
+          if (topicDoc.exists()) {
+            setTopicName(topicDoc.data().name);
+          }
+        } else {
+          setTopicName(topicNameFromState);
+        }
 
-  const handleNameChange = (value: string) => {
-    setName(value);
-    if (value.trim()) {
-      setIdentification(value);
-    } else if (employeeId.trim()) {
-      setIdentification(employeeId);
-    } else {
-      setIdentification("Anonymous");
+        // Fetch leaderboard
+        const leaderboardQuery = query(
+          collection(db, "leaderboards", topicId, "scores"),
+          orderBy("score", "desc")
+        );
+        const leaderboardSnapshot = await getDocs(leaderboardQuery);
+        const leaderboardData = leaderboardSnapshot.docs.map(doc => doc.data()) as LeaderboardEntry[];
+        setLeaderboard(leaderboardData);
+
+        // Find user rank
+        const userEmail = currentUser?.email;
+        if (userEmail) {
+          const userIndex = leaderboardData.findIndex(entry => entry.userName === userEmail);
+          if (userIndex !== -1) {
+            setUserRank(userIndex + 1);
+          }
+        }
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to load results data",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [topicId, currentUser, topicNameFromState, toast]);
+
+  const handleSubmit = async () => {
+    if (!topicId || !currentUser) return;
+    
+    try {
+      // Save feedback if provided
+      if (feedback.trim()) {
+        await addDoc(collection(db, "feedback"), {
+          topicId,
+          topicName,
+          userName: name.trim() || currentUser.email,
+          userEmail: currentUser.email,
+          feedback: feedback.trim(),
+          score,
+          timestamp: new Date()
+        });
+      }
+      
+      setSubmitted(true);
+      toast({ title: "Feedback submitted successfully!" });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to submit feedback",
+        variant: "destructive"
+      });
     }
   };
 
-  const handleEmployeeIdChange = (value: string) => {
-    setEmployeeId(value);
-    if (value.trim() && !name.trim()) {
-      setIdentification(value);
+  const getRankIcon = (rank: number) => {
+    switch (rank) {
+      case 1: return <Trophy className="h-6 w-6 text-yellow-500" />;
+      case 2: return <Medal className="h-6 w-6 text-gray-400" />;
+      case 3: return <Award className="h-6 w-6 text-amber-600" />;
+      default: return <span className="text-lg font-bold text-primary">#{rank}</span>;
     }
   };
 
-  const handleSubmit = () => {
-    const finalIdentification = name.trim() || employeeId.trim() || "Anonymous";
-    setIdentification(finalIdentification);
-    
-    // Save score to leaderboard
-    saveScore(finalIdentification, quizScore);
-    setLeaderboard(getLeaderboard());
-    
-    setSubmitted(true);
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">Loading results...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
       
       <div className="container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto space-y-6">
-          {/* Top Students Leaderboard */}
-          <TopStudents students={leaderboard} />
+        <div className="max-w-4xl mx-auto space-y-6">
+          <h2 className="text-3xl font-display font-bold text-center text-primary mb-8">
+            {topicName} Quiz Results
+          </h2>
           
           {!submitted ? (
-            <Card className="shadow-xl border-0 overflow-hidden">
-              <div className="bg-primary text-primary-foreground p-5">
-                <h3 className="text-xl font-display font-bold text-center">
-                  Your Results
-                </h3>
-              </div>
-              
-              <CardContent className="p-6 space-y-6">
-                {/* Performance Display */}
-                <div className="p-4 bg-secondary/50 rounded-lg">
-                  <p className="text-foreground">
-                    Your performance is{" "}
-                    <span className="font-bold text-primary">{performance}</span>, 
-                    based on your scores. Please fill up the details mentioned below.
-                  </p>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Feedback Form */}
+              <Card className="shadow-xl border-0 overflow-hidden">
+                <div className="bg-primary text-primary-foreground p-5">
+                  <h3 className="text-xl font-display font-bold text-center">
+                    Submit Details
+                  </h3>
                 </div>
+                
+                <CardContent className="p-6 space-y-4">
+                  <div className="p-4 bg-secondary/50 rounded-lg text-center">
+                    <p className="text-2xl font-bold text-primary mb-2">Your Score: {score}</p>
+                    {userRank && (
+                      <p className="text-lg text-muted-foreground">
+                        Current Rank: #{userRank}
+                      </p>
+                    )}
+                  </div>
 
-                {/* Form */}
-                <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name">Enter your name:</Label>
+                    <Label htmlFor="name">Name (Optional)</Label>
                     <Input
                       id="name"
                       type="text"
                       value={name}
-                      onChange={(e) => handleNameChange(e.target.value)}
-                      placeholder="Your name"
-                      className="h-11"
-                    />
-                  </div>
-
-                  <div className="text-center text-muted-foreground font-medium">
-                    OR
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="employeeId">Employee ID:</Label>
-                    <Input
-                      id="employeeId"
-                      type="text"
-                      value={employeeId}
-                      onChange={(e) => handleEmployeeIdChange(e.target.value)}
-                      placeholder="Your employee ID"
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Enter your name"
                       className="h-11"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="suggestion">Any suggestions for us?</Label>
+                    <Label htmlFor="feedback">Feedback (Optional)</Label>
                     <Textarea
-                      id="suggestion"
-                      value={suggestion}
-                      onChange={(e) => setSuggestion(e.target.value)}
-                      placeholder="Share your feedback..."
+                      id="feedback"
+                      value={feedback}
+                      onChange={(e) => setFeedback(e.target.value)}
+                      placeholder="Share your feedback about the quiz..."
                       className="min-h-[100px] resize-none"
                     />
                   </div>
-                </div>
 
-                <Button 
-                  onClick={handleSubmit}
-                  className="w-full h-11 font-display"
-                >
-                  Submit Feedback
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="shadow-xl border-0 overflow-hidden">
-              <CardContent className="p-8">
-                <div className="text-center mb-6">
-                  <CheckCircle className="h-16 w-16 text-success mx-auto mb-4" />
-                </div>
-                
-                <div className="bg-success/10 border border-success/30 rounded-lg p-6 space-y-3">
-                  <div>
-                    <span className="font-bold text-foreground">Employee Name or ID: </span>
-                    <span className="text-primary font-medium">{identification}</span>
-                  </div>
-                  <div>
-                    <span className="font-bold text-foreground">Suggestions: </span>
-                    <span className="text-primary">{suggestion || "None"}</span>
-                  </div>
-                  <div className="pt-4 text-center">
-                    <p className="text-lg font-display font-bold text-success">
-                      Thank You for using the app!
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-6 text-center">
-                  <Button asChild variant="outline" className="gap-2">
-                    <Link to="/">
-                      <Home className="h-4 w-4" />
-                      Back to Home
-                    </Link>
+                  <Button 
+                    onClick={handleSubmit}
+                    className="w-full h-11 font-display"
+                  >
+                    Submit & View Leaderboard
                   </Button>
+                </CardContent>
+              </Card>
+
+              {/* Top 5 Leaderboard Preview */}
+              <Card className="shadow-xl border-0">
+                <div className="bg-primary text-primary-foreground p-5">
+                  <h3 className="font-display font-bold flex items-center gap-2">
+                    <Trophy className="h-5 w-5" />
+                    Top 5 Rankings
+                  </h3>
                 </div>
-              </CardContent>
-            </Card>
+                <CardContent className="p-6">
+                  {leaderboard.slice(0, 5).length > 0 ? (
+                    <div className="space-y-3">
+                      {leaderboard.slice(0, 5).map((entry, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 rounded bg-secondary/30">
+                          <div className="flex items-center gap-3">
+                            {getRankIcon(index + 1)}
+                            <span className="text-sm font-medium truncate">{entry.userName}</span>
+                          </div>
+                          <span className="font-bold text-primary">{entry.score}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground text-sm text-center py-4">
+                      No scores yet. Be the first!
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Success Message */}
+              <Card className="shadow-xl border-0 bg-success/10 border-success/30">
+                <CardContent className="p-8 text-center">
+                  <CheckCircle className="h-16 w-16 text-success mx-auto mb-4" />
+                  <h3 className="text-2xl font-display font-bold text-success mb-2">
+                    Thank You!
+                  </h3>
+                  <p className="text-muted-foreground mb-4">
+                    Your feedback has been submitted successfully.
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Full Leaderboard */}
+              <Card className="shadow-xl border-0">
+                <div className="bg-primary text-primary-foreground p-5">
+                  <h3 className="text-xl font-display font-bold text-center">
+                    {topicName} Leaderboard
+                  </h3>
+                </div>
+                <CardContent className="p-6">
+                  {leaderboard.length > 0 ? (
+                    <div className="space-y-3">
+                      {leaderboard.map((entry, index) => {
+                        const isCurrentUser = entry.userName === currentUser?.email;
+                        return (
+                          <div 
+                            key={index} 
+                            className={`flex items-center justify-between p-4 rounded-lg border transition-all ${
+                              isCurrentUser ? 'border-primary bg-primary/5' : 'border-border bg-secondary/20'
+                            }`}
+                          >
+                            <div className="flex items-center gap-4">
+                              {getRankIcon(index + 1)}
+                              <div>
+                                <span className={`font-medium ${
+                                  isCurrentUser ? 'text-primary font-bold' : 'text-foreground'
+                                }`}>
+                                  {entry.userName} {isCurrentUser && '(You)'}
+                                </span>
+                              </div>
+                            </div>
+                            <span className={`font-bold ${
+                              isCurrentUser ? 'text-primary text-lg' : 'text-foreground'
+                            }`}>
+                              {entry.score}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground text-center py-8">
+                      No scores available yet.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+
+              <div className="text-center">
+                <Button 
+                  onClick={() => navigate("/topics")}
+                  className="px-8"
+                >
+                  Back to Topics
+                </Button>
+              </div>
+            </div>
           )}
         </div>
       </div>
