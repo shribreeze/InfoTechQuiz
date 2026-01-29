@@ -7,6 +7,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import PrivateRoute from "./components/PrivateRoute";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
+import Topics from "./pages/Topics";
 import Quiz from "./pages/Quiz";
 import Results from "./pages/Results";
 import NotFound from "./pages/NotFound";
@@ -23,7 +24,8 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/quiz" element={<PrivateRoute><Quiz /></PrivateRoute>} />
+            <Route path="/topics" element={<PrivateRoute><Topics /></PrivateRoute>} />
+            <Route path="/quiz/:topicId" element={<PrivateRoute><Quiz /></PrivateRoute>} />
             <Route path="/results" element={<PrivateRoute><Results /></PrivateRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>

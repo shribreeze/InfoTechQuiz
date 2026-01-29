@@ -51,11 +51,12 @@ const Login = () => {
       if (isSignUp) {
         await createUserWithEmailAndPassword(auth, email, password);
         toast({ title: "Account created successfully!" });
+        navigate("/topics");
       } else {
         await signInWithEmailAndPassword(auth, email, password);
         toast({ title: "Logged in successfully!" });
+        navigate("/topics");
       }
-      navigate("/quiz");
     } catch (error: any) {
       let errorMessage = "An error occurred";
       
