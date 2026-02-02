@@ -26,6 +26,7 @@ const Results = () => {
   const { toast } = useToast();
   
   const [name, setName] = useState("");
+  const [employeeId, setEmployeeId] = useState("");
   const [feedback, setFeedback] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
@@ -91,6 +92,7 @@ const Results = () => {
           topicId,
           topicName,
           userName: name.trim() || currentUser.email,
+          employeeId: employeeId.trim() || "",
           userEmail: currentUser.email,
           feedback: feedback.trim(),
           score,
@@ -107,6 +109,17 @@ const Results = () => {
         variant: "destructive"
       });
     }
+  };
+
+  const getPerformanceMessage = (score: number) => {
+    const maxScore = 50; // 5 questions × 10 points each
+    const percentage = (score / maxScore) * 100;
+    
+    if (percentage >= 90) return "Excellent! Outstanding performance!";
+    if (percentage >= 80) return "Very Good! Great job!";
+    if (percentage >= 70) return "Good! Well done!";
+    if (percentage >= 60) return "Satisfactory! Keep improving!";
+    return "Needs Improvement! Don't give up!";
   };
 
   const getRankIcon = (rank: number) => {
@@ -152,6 +165,9 @@ const Results = () => {
                 <CardContent className="p-6 space-y-4">
                   <div className="p-4 bg-secondary/50 rounded-lg text-center">
                     <p className="text-2xl font-bold text-primary mb-2">Your Score: {score}</p>
+                    <p className="text-lg font-semibold text-success mb-2">
+                      {getPerformanceMessage(score)}
+                    </p>
                     {userRank && (
                       <p className="text-lg text-muted-foreground">
                         Current Rank: #{userRank}
@@ -167,6 +183,18 @@ const Results = () => {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="Enter your name"
+                      className="h-11"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="employeeId">Employee ID (Optional)</Label>
+                    <Input
+                      id="employeeId"
+                      type="text"
+                      value={employeeId}
+                      onChange={(e) => setEmployeeId(e.target.value)}
+                      placeholder="Enter your employee ID"
                       className="h-11"
                     />
                   </div>
