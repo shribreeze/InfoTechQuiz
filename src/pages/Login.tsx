@@ -1,21 +1,26 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { auth } from "../../firebase.js";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
+import { Mail, CheckCircle } from "lucide-react";
 import Navbar from "@/components/Navbar";
 
 const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { refreshUser } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showVerificationMessage, setShowVerificationMessage] = useState(false);
   const [errors, setErrors] = useState({ email: "", password: "" });
 
   const validate = (): boolean => {
@@ -49,13 +54,30 @@ const Login = () => {
     setLoading(true);
     try {
       if (isSignUp) {
-        await createUserWithEmailAndPassword(auth, email, password);
-        toast({ title: "Account created successfully!" });
-        navigate("/topics");
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        await sendEmailVerification(userCredential.user);
+        setShowVerificationMessage(true);
+        toast({ 
+          title: "Account created!", 
+          description: "Please check your email to verify your account."
+        });
       } else {
-        await signInWithEmailAndPassword(auth, email, password);
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        // Reload user to get updated emailVerified status
+        await userCredential.user.reload();
+        await refreshUser(); // Refresh the context state
+        
+        const updatedUser = auth.currentUser;
+        if (!updatedUser?.emailVerified) {
+          toast({
+            title: "Email not verified",
+            description: "Please verify your email before accessing the quiz.",
+            variant: "destructive"
+          });
+          return;
+        }
         toast({ title: "Logged in successfully!" });
-        navigate("/topics");
+        // Don't navigate here, let PublicRoute handle the redirect
       }
     } catch (error: any) {
       let errorMessage = "An error occurred";
@@ -93,6 +115,94 @@ const Login = () => {
       setLoading(false);
     }
   };
+
+  const resendVerification = async () => {
+    if (!email) {
+      toast({
+        title: "Error",
+        description: "Please enter your email address",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      await sendEmailVerification(userCredential.user);
+      toast({ 
+        title: "Verification email sent!", 
+        description: "Please check your email inbox."
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send verification email",
+        variant: "destructive"
+      });
+    }
+  };
+
+  if (showVerificationMessage) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        
+        <div className="container mx-auto px-4 py-8">
+          <h2 className="text-2xl md:text-3xl font-display font-bold text-center text-primary mb-8">
+            Infotech Quiz Portal (IQP)
+          </h2>
+
+          <div className="max-w-md mx-auto">
+            <Card className="shadow-xl border-0 overflow-hidden">
+              <div className="bg-primary text-primary-foreground p-5">
+                <h3 className="text-xl font-display font-bold text-center flex items-center justify-center gap-2">
+                  <Mail className="h-5 w-5" />
+                  Verify Your Email
+                </h3>
+              </div>
+              
+              <CardContent className="p-6 text-center space-y-4">
+                <CheckCircle className="h-16 w-16 text-success mx-auto" />
+                <div className="space-y-2">
+                  <p className="text-lg font-semibold">Account Created Successfully!</p>
+                  <p className="text-muted-foreground">
+                    We've sent a verification email to <strong>{email}</strong>
+                  </p>
+                </div>
+                
+                <Alert>
+                  <AlertDescription>
+                    Please check your email and click the verification link to activate your account.
+                    You won't be able to access the quiz until your email is verified.
+                  </AlertDescription>
+                </Alert>
+
+                <div className="space-y-3 pt-4">
+                  <Button 
+                    onClick={resendVerification}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    Resend Verification Email
+                  </Button>
+                  
+                  <Button 
+                    onClick={() => {
+                      setShowVerificationMessage(false);
+                      setIsSignUp(false);
+                    }}
+                    className="w-full"
+                  >
+                    Back to Login
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">

@@ -6,6 +6,7 @@ interface AuthContextType {
   currentUser: User | null;
   logout: () => Promise<void>;
   loading: boolean;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
@@ -17,6 +18,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   const logout = () => signOut(auth);
+
+  const refreshUser = async () => {
+    if (auth.currentUser) {
+      await auth.currentUser.reload();
+      setCurrentUser({ ...auth.currentUser });
+    }
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -30,7 +38,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const value = {
     currentUser,
     logout,
-    loading
+    loading,
+    refreshUser
   };
 
   return (

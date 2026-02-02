@@ -41,7 +41,6 @@ const Results = () => {
       if (!topicId) return;
       
       try {
-        // Fetch topic name if not provided
         if (!topicNameFromState) {
           const topicDoc = await getDoc(doc(db, "topics", topicId));
           if (topicDoc.exists()) {

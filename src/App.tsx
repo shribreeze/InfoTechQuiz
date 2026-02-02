@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import PrivateRoute from "./components/PrivateRoute";
+import PublicRoute from "./components/PublicRoute";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Topics from "./pages/Topics";
@@ -22,8 +23,8 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
+            <Route path="/" element={<PublicRoute><Home /></PublicRoute>} />
+            <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
             <Route path="/topics" element={<PrivateRoute><Topics /></PrivateRoute>} />
             <Route path="/quiz/:topicId" element={<PrivateRoute><Quiz /></PrivateRoute>} />
             <Route path="/results/:topicId" element={<PrivateRoute><Results /></PrivateRoute>} />

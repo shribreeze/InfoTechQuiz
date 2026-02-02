@@ -8,7 +8,15 @@ interface PrivateRouteProps {
 const PrivateRoute = ({ children }: PrivateRouteProps) => {
   const { currentUser } = useAuth();
   
-  return currentUser ? <>{children}</> : <Navigate to="/login" />;
+  if (!currentUser) {
+    return <Navigate to="/login" />;
+  }
+  
+  if (!currentUser.emailVerified) {
+    return <Navigate to="/login" />;
+  }
+  
+  return <>{children}</>;
 };
 
 export default PrivateRoute;
