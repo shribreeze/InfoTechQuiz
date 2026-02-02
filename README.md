@@ -1,17 +1,20 @@
 # Infotech Quiz Portal (IQP)
 
-A modern, responsive quiz application built with React, TypeScript, and Firebase. Features user authentication, topic-based quizzes, real-time leaderboards, and feedback collection.
+A modern, responsive quiz application built with React, TypeScript, and Firebase. Features user authentication with email verification, topic-based quizzes, real-time leaderboards, performance feedback, and comprehensive user data collection.
 
 ## 🚀 Features
 
 - **User Authentication**: Email/password signup and login with Firebase Auth
+- **Email Verification**: Required email verification before quiz access
 - **Topic Selection**: Multiple quiz subjects (JavaScript, React, TypeScript)
 - **Dynamic Quizzes**: Questions fetched from Firestore database
 - **Real-time Leaderboards**: Topic-specific rankings with top 5 display
-- **Feedback System**: Optional user feedback collection
+- **Performance Feedback**: Score-based appreciation messages (Excellent, Very Good, etc.)
+- **Feedback System**: Optional user feedback with name and employee ID collection
 - **Responsive Design**: Works on desktop and mobile devices
-- **Protected Routes**: Authentication required for quiz access
+- **Protected Routes**: Authentication and email verification required for quiz access
 - **Timer Functionality**: 5-minute quiz timer with auto-submit
+- **Smart Routing**: Authenticated users automatically redirected to topics page
 
 ## 🛠️ Tech Stack
 
@@ -32,20 +35,22 @@ quiz-app/
 │   │   ├── ui/                 # Shadcn UI components
 │   │   ├── Navbar.tsx          # Navigation component
 │   │   ├── QuizTimer.tsx       # Timer component
-│   │   └── PrivateRoute.tsx    # Route protection
+│   │   ├── PrivateRoute.tsx    # Route protection (auth + email verification)
+│   │   └── PublicRoute.tsx     # Public route protection (redirects authenticated users)
 │   ├── contexts/
-│   │   └── AuthContext.tsx     # Authentication context
+│   │   └── AuthContext.tsx     # Authentication context with email verification
 │   ├── pages/
 │   │   ├── Home.tsx           # Landing page
-│   │   ├── Login.tsx          # Login/Signup page
+│   │   ├── Login.tsx          # Login/Signup page with email verification
 │   │   ├── Topics.tsx         # Topic selection page
-│   │   ├── Quiz.tsx           # Quiz interface
-│   │   └── Results.tsx        # Results and leaderboard
+│   │   ├── Quiz.tsx           # Quiz interface with leaderboard
+│   │   └── Results.tsx        # Results, feedback, and full leaderboard
 │   ├── utils/
 │   │   └── setupFirestore.ts  # Database setup script
 │   └── lib/
 │       └── utils.ts           # Utility functions
 ├── firebase.js                # Firebase configuration
+├── setup-console.js           # Browser console setup script
 └── README.md
 ```
 
@@ -74,7 +79,9 @@ npm install
 #### Enable Authentication
 1. Go to Authentication → Sign-in method
 2. Enable "Email/Password" provider
-3. Save changes
+3. Go to Authentication → Templates
+4. Configure "Email address verification" template (optional customization)
+5. Save changes
 
 #### Enable Firestore Database
 1. Go to Firestore Database
@@ -172,26 +179,35 @@ firebase deploy
 ## 📱 Application Flow
 
 ### 1. User Registration/Login
-- Users can create accounts with email/password
-- Existing users can login
-- Authentication required for quiz access
+- Users create accounts with email/password
+- **Email verification required** - verification email sent automatically
+- Users must verify email before accessing quiz content
+- Existing verified users can login directly
+- Unverified users see verification reminder
 
-### 2. Topic Selection
-- After login, users see available quiz topics
+### 2. Smart Routing
+- **Authenticated + Verified users**: Automatically redirected to topics page
+- **Unauthenticated users**: Can access home and login pages only
+- **Authenticated but unverified**: Restricted to login page until verification
+
+### 3. Topic Selection
+- After verification, users see available quiz topics
 - Each topic shows description and question count
 - Click to start quiz for selected topic
 
-### 3. Quiz Interface
+### 4. Quiz Interface
 - 5-minute timer with auto-submit
-- Multiple choice questions
-- Real-time leaderboard sidebar
+- Multiple choice questions (10 points each)
+- Real-time leaderboard sidebar showing top 5
 - Submit button (requires all answers)
 
-### 4. Results & Feedback
+### 5. Results & Feedback
+- **Performance feedback**: Score-based appreciation messages
+  - Excellent (90%+), Very Good (80-89%), Good (70-79%), Satisfactory (60-69%), Needs Improvement (<60%)
 - Score display with current rank
-- Optional name and feedback form
-- Full leaderboard after submission
-- User's entry highlighted in rankings
+- Optional feedback form with name and employee ID
+- Full leaderboard after submission with user highlighting
+- Trophy icons for top 3 positions
 
 ## 🗄️ Database Schema
 
@@ -222,6 +238,7 @@ Firestore Database
         ├── topicId: string
         ├── topicName: string
         ├── userName: string
+        ├── employeeId: string
         ├── userEmail: string
         ├── feedback: string
         ├── score: number
@@ -233,19 +250,21 @@ Firestore Database
 ### Key Components
 - **Navbar**: Navigation with user info and logout
 - **Topics**: Grid layout of available quiz subjects
-- **Quiz**: Question interface with timer and leaderboard
-- **Results**: Feedback form and full leaderboard display
-- **PrivateRoute**: Authentication protection wrapper
+- **Quiz**: Question interface with timer and real-time leaderboard
+- **Results**: Performance feedback, feedback form, and full leaderboard display
+- **PrivateRoute**: Authentication and email verification protection
+- **PublicRoute**: Redirects authenticated users away from public pages
 
 ### Styling
 - Tailwind CSS for utility-first styling
 - Shadcn/ui for consistent component design
 - Responsive design for all screen sizes
-- Dark/light theme support
 
 ## 🔐 Security Features
 
+- **Email Verification Required**: Users must verify email before quiz access
 - **Authentication Required**: Protected routes for quiz access
+- **Smart Route Protection**: Prevents authenticated users from accessing public pages
 - **Firestore Rules**: Controlled read/write permissions
 - **Input Validation**: Form validation on client side
 - **XSS Protection**: Sanitized user inputs
@@ -308,6 +327,12 @@ const firebaseConfig = {
 - Verify Firebase Auth is enabled
 - Check API keys in firebase.js
 - Ensure authorized domains include localhost
+- Verify email verification is enabled in Firebase Console
+
+**Email Verification Issues:**
+- Check spam/junk folder for verification emails
+- Ensure email templates are configured in Firebase Console
+- Verify user clicks verification link before attempting login
 
 **Firestore Permission Errors:**
 - Update Firestore rules as specified
@@ -323,12 +348,15 @@ const firebaseConfig = {
 
 - [ ] Question categories and difficulty levels
 - [ ] Time-based scoring system
-- [ ] User profiles and statistics
+- [ ] User profiles and statistics dashboard
 - [ ] Admin panel for content management
 - [ ] Social sharing features
 - [ ] Mobile app version
 - [ ] Offline quiz capability
 - [ ] Multi-language support
+- [ ] Advanced analytics and reporting
+- [ ] Bulk user management
+- [ ] Custom quiz creation tools
 
 ## 🤝 Contributing
 
