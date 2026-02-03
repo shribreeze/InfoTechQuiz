@@ -217,28 +217,83 @@ const Quiz = () => {
 
               {/* Result Section */}
               {submitted && (
-                <Card className="mt-8 shadow-lg border-0 bg-success/10 border-success/30">
-                  <CardContent className="p-6 text-center">
-                    <CheckCircle className="h-12 w-12 text-success mx-auto mb-3" />
-                    <p className="text-xl font-display font-bold text-success mb-4">
-                      Your score is {score}!
-                    </p>
-                    <div className="flex gap-3 justify-center">
-                      <Button 
-                        onClick={handleProceed}
-                        className="bg-success hover:bg-success/90"
-                      >
-                        Back to Topics
-                      </Button>
-                      <Button 
-                        onClick={() => navigate(`/results/${topicId}`, { state: { score, topicName } })}
-                        variant="outline"
-                      >
-                        View Results
-                      </Button>
+                <div className="space-y-6">
+                  <Card className="mt-8 shadow-lg border-0 bg-success/10 border-success/30">
+                    <CardContent className="p-6 text-center">
+                      <CheckCircle className="h-12 w-12 text-success mx-auto mb-3" />
+                      <p className="text-xl font-display font-bold text-success mb-4">
+                        Your score is {score}!
+                      </p>
+                      <div className="flex gap-3 justify-center">
+                        <Button 
+                          onClick={handleProceed}
+                          className="bg-success hover:bg-success/90"
+                        >
+                          Back to Topics
+                        </Button>
+                        <Button 
+                          onClick={() => navigate(`/results/${topicId}`, { state: { score, topicName } })}
+                          variant="outline"
+                        >
+                          View Results
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Correct Answers for Incorrect Questions */}
+                  <Card className="shadow-lg border-0">
+                    <div className="bg-destructive/10 border-b border-destructive/20 p-4">
+                      <h3 className="text-lg font-display font-bold text-destructive">
+                        Review Incorrect Answers
+                      </h3>
                     </div>
-                  </CardContent>
-                </Card>
+                    <CardContent className="p-6">
+                      <div className="space-y-4">
+                        {questions.map((question, index) => {
+                          const userAnswer = answers[question.id];
+                          const isCorrect = userAnswer === question.correctAnswer;
+                          
+                          if (isCorrect) return null;
+                          
+                          return (
+                            <div key={question.id} className="border border-destructive/20 rounded-lg p-4 bg-destructive/5">
+                              <p className="font-medium text-foreground mb-3">
+                                <span className="text-destructive font-display">Q{index + 1})</span>{" "}
+                                {question.question}
+                              </p>
+                              
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-medium text-destructive">Your answer:</span>
+                                  <span className="text-sm bg-destructive/10 px-2 py-1 rounded">
+                                    {userAnswer !== undefined ? question.options[userAnswer] : "Not answered"}
+                                  </span>
+                                </div>
+                                
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-medium text-success">Correct answer:</span>
+                                  <span className="text-sm bg-success/10 px-2 py-1 rounded font-medium">
+                                    {question.options[question.correctAnswer]}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        
+                        {questions.every((question) => answers[question.id] === question.correctAnswer) && (
+                          <div className="text-center py-8">
+                            <CheckCircle className="h-16 w-16 text-success mx-auto mb-4" />
+                            <p className="text-lg font-semibold text-success">
+                              Perfect Score! All answers were correct! 🎉
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
               )}
 
               {/* Submit Button */}
